@@ -105,8 +105,8 @@ f_stat <- function(y, factor){
   # Find the total and factor-level number of observations
   K   <- length(levels) # Number of levels of the factor
   N_i <- lapply(levels, function(x) length(y[factor == x])) # Number of
-                                                            # observations per
-                                                            # factor
+  # observations per
+  # factor
   
   # Calculate the numerator
   numerator   <- f_stat_numerator(overall_mean, factor_means, K, N_i)
@@ -123,9 +123,9 @@ factor_means <- function(y, factor, levels){
   # factor  : the categorical variable with different groups
   # groups  : the groups of the factor
   # returns : a list of means
-
+  
   factor_means <- rep(NA, length(levels)) # Create an empty list to store the 
-                                          # means
+  # means
   
   # Loop over the levels of the factor and add the means to the list
   i <- 1
@@ -154,7 +154,7 @@ f_stat_numerator <- function(overall_mean, factor_means, K, N_i){
   weighted_mean_diff <- 0
   for (i in 1:K){
     weighted_mean_diff <- weighted_mean_diff + 
-                          (N_i[[i]] * mean_diff_squared[[i]])
+      (N_i[[i]] * mean_diff_squared[[i]])
   }
   
   # Divide the sum of the weighted mean difference squared values by the number
@@ -180,7 +180,7 @@ f_stat_denominator <- function(y, factor, levels, factor_means, K, N_i){
   for (i in 1:K){
     for (j in 1:N_i[[i]]){
       denominator <- denominator + ((y[factor == levels[[i]]][j] - 
-                                     factor_means[i]) ^ 2)
+                                       factor_means[i]) ^ 2)
     }
   }
   
@@ -188,7 +188,7 @@ f_stat_denominator <- function(y, factor, levels, factor_means, K, N_i){
 }
 
 (((100 * (a_mean - overall_mean)^2) + (125 * (b_mean - overall_mean)^2) +
-  (75 * (c_mean - overall_mean)^2)) / 2) / 1796.535
+    (75 * (c_mean - overall_mean)^2)) / 2) / 1796.535
 
 # Calculate the F-test statistic for the data
 f_stat(eco.df$density, eco.df$habitat)
@@ -225,7 +225,7 @@ calcLogMix2Gamma <- function(x, alpha, beta, p){
   # returns (numeric)        : log joint density of the model
   
   # Get the information about validity of the inputs
-  error_check <- verify_gamma_input(x, alpha, beta, p)
+  error_check <- verifyGammaInput(x, alpha, beta, p)
   
   # If inputs are invalid, terminate the function and display the reasons
   if(error_check[1]){
@@ -261,7 +261,7 @@ mix2GammaPdf <- function(x_i, alpha, beta, p){
   alpha2 <- alpha[2]
   beta1  <-  beta[1]
   beta2  <-  beta[2]
-
+  
   # Find the results of the two Gamma pdfs
   gamma1 <- gammaPdf(x_i, alpha1, beta1)
   gamma2 <- gammaPdf(x_i, alpha2, beta2)
@@ -291,7 +291,7 @@ gammaPdf <- function(x_i, alpha, beta){
 #######
 
 # Function to verify the validity of inputs to the Gamma mixture model function
-verify_gamma_input <- function(x, alpha, beta, p){
+verifyGammaInput <- function(x, alpha, beta, p){
   # x       (numeric vector) : input 
   # alpha   (numeric vector) : vector of alpha parameters
   # beta    (numeric vector) : vector of beta parameters
@@ -378,15 +378,16 @@ verify_gamma_input <- function(x, alpha, beta, p){
 #######
 
 # Assign the inputs and parameters
-x     <- c(0.06, 2.32, 4.81, 0.02, 2.33, 2.18, 0.83, 2.45, 2.10, 3.27)
-alpha <- c(0.5, 6)
-beta  <- c(0.5, 2.5)
-p     <- 0.35
+x_0     <- c(0.06, 2.32, 4.81, 0.02, 2.33, 2.18, 0.83, 2.45, 2.10, 3.27)
+alpha_0 <- c(0.5, 6)
+beta_0  <- c(0.5, 2.5)
+p_0     <- 0.35
 
 # Perform the required calculation
-calcLogMix2Gamma(x, alpha, beta, p)
+calcLogMix2Gamma(x_0, alpha_0, beta_0, p_0)
 
 # The natural logarithm of the joint density for the given values is -13.928
+# (3 d.p.)
 
 
 ##################
@@ -399,6 +400,7 @@ calcLogMix2Gamma(x, alpha, beta, p)
 ## a ##
 #######
 
+# Function to calculate the output of g(.) as displated in Eq. (5)
 smoothCurve <- function(x, alpha, beta, p, q, k){
   # x       (numeric value/vector) : input value/vector
   # alpha   (numeric)              : alpha parameter
@@ -430,6 +432,8 @@ smoothCurve <- function(x, alpha, beta, p, q, k){
   
   return(output)
 }
+
+## NEEDS COMMENTING BELOW ##
 
 # Function to verify the validity of inputs to the smooth curve function
 verifySmoothInput <- function(x, alpha, beta, p, q, k){
@@ -472,16 +476,19 @@ verifySmoothInput <- function(x, alpha, beta, p, q, k){
                               "- beta can only take positive values")
   }
   
+  # Check for correct data type of p
   if(length(p) > 1 | !is.numeric(p)) {
     error_check_msg <- append(error_check_msg, 
                               "- p must be a single numeric value")
   }
   
-    if(length(q) > 1 | !is.numeric(q)) {
+  # Check for correct data type of q
+  if(length(q) > 1 | !is.numeric(q)) {
     error_check_msg <- append(error_check_msg, 
                               "- q must be a single numeric value")
   }
-
+  
+  # Check for correct data type of k
   if(length(k) > 1 | !is.numeric(k)) {
     error_check_msg <- append(error_check_msg, 
                               "- k must be a single numeric value")
@@ -513,23 +520,248 @@ calcMidRiemannLoop <- function(xVec, alpha, beta, p, q, k){
   # p       (numeric)        : p parameter
   # q       (numeric)        : q parameter
   # k       (numeric)        : k parameter
-  # returns
-  
-  # Get the number of subintervals
-  N <- length(xVec) - 1
+  # returns (numeric)        : an approximation to the area between a function 
+  #                            given by smoothCurve() and the x-axis using the 
+  #                            midpoint Riemann sum
   
   # Initialise the sum at zero
-  midReimannSum <- 0
+  midRiemannSum <- 0
   
   # Perform the sum
-  for(i in 2:N){
-    smoothCurveInput <- (x[i] + x[i-1]) / 2
-    midReimannSum    <- midReimannSum + ((x[i] - x[i-1]) * 
-                                           smoothCurve(smoothCurveInput))
+  for(i in 2:length(xVec)){
+    # Find the midpoint of the subinterval
+    midPoint      <- (xVec[i] + xVec[i-1]) / 2
+
+    # Add the width of the subinterval times the absolute value of the function
+    # at the midpoint of the interval to the Riemann sum
+    # Use absolute value to get positive area for subintervals falling below
+    # the x-axis
+    midRiemannSum <- midRiemannSum + ((xVec[i] - xVec[i-1]) * 
+                                           abs(smoothCurve(midPoint, alpha, 
+                                                           beta, p, q, k)))
   }
   
-  return(midReimannSum)
+  return(midRiemannSum)
 }
 
-calcMidRiemannLoop(c(1, 2, 3, 4), 1, 1, 1, 1 ,1)
+#######
+## c ##
+#######
 
+calcMidRiemann <- function(xVec, alpha, beta, p, q, k){
+  # xVec    (numeric vector) : input vector
+  # alpha   (numeric)        : alpha parameter
+  # beta    (numeric)        : beta parameter
+  # p       (numeric)        : p parameter
+  # q       (numeric)        : q parameter
+  # k       (numeric)        : k parameter
+  # returns (numeric)        : an approximation to the area between a function 
+  #                            given by smoothCurve() and the x-axis using the 
+  #                            midpoint Riemann sum
+  
+  # Get the information about validity of the inputs
+  error_check <- verifyRiemannInput(xVec, alpha, beta, p, q, k)
+  
+  # If inputs are invalid, terminate the function and display the reasons
+  if(error_check[1]){
+    stop(error_check[2])
+  }
+  
+  # Get the number of elements in xVec
+  N <- length(xVec)
+  
+  # Create two vectors of left-points and right-points for the subintervals
+  leftPoints <- xVec[-N]
+  rightPoints <- xVec[-1]
+  
+  # Use the left and right points to calculate a vector of midpoints
+  midPoints <- (leftPoints + rightPoints) / 2
+  
+  # Calculate the (absolute) height of the curve from the x-axis at each 
+  # midpoint
+  rectHeights <- abs(smoothCurve(midPoints, alpha, beta, p, q, k))
+  
+  # Use the left and right points to find the width of each subinterval
+  rectWidths <- rightPoints - leftPoints
+  
+  # Calculate the area of the rectangles formed by each subinterval and the
+  # height of the curve at the midpoint of the subinterval
+  rectAreas <- rectHeights * rectWidths
+  
+  # Calculate the total approximate area between the curve and x-axis by summing 
+  # the area of each rectangle
+  midRiemannSum <- sum(rectAreas)
+  
+  return(midRiemannSum)
+}
+
+#######
+## d ##
+#######
+
+verifyRiemannInput <- function(xVec, alpha, beta, p, q, k){
+  # xVec    (numeric vector) : input vector
+  # alpha   (numeric)        : alpha parameter
+  # beta    (numeric)        : beta parameter
+  # p       (numeric)        : p parameter
+  # q       (numeric)        : q parameter
+  # k       (numeric)        : k parameter
+  # returns (list)           : a list with the first entry as a boolean 
+  #                            representing whether the inputs are valid (TRUE
+  #                            indicates invalid) and the second entry a string
+  #                            displaying information about the error
+  
+  
+  # Default to TRUE and set to FALSE if no errors are found to avoid
+  # repetitively reassigning value to TRUE if multiple errors found
+  error_check <- c(TRUE)
+  
+  # Create a list to store messages about errors
+  # These error messages will be concatenated into one string after all errors
+  # are checked for and added to the error_check object
+  error_check_msg <- list()
+  
+  # Check for correct data type of x
+  if(length(xVec) < 2 | !is.numeric(xVec)){
+    error_check_msg <- append(error_check_msg, 
+                              "- xVec must be a numeric vector with length of 
+                              at least 2")
+  }
+  
+  if(!monotoneInceasing(xVec)) {
+    error_check_msg <- append(error_check_msg, 
+                              "- elements of xVec must be in strictly increasing
+                              order")
+  }
+  
+  # Check for correct data type of alpha
+  if(length(alpha) > 1 | !is.numeric(alpha)) {
+    error_check_msg <- append(error_check_msg, 
+                              "- alpha must be a single numeric value")
+  }
+  
+  # Check that alpha is positive
+  else if(alpha <= 0) {
+    error_check_msg <- append(error_check_msg, 
+                              "- alpha can only take positive values")
+  }
+  
+  # Check for correct data type of beta
+  if(length(beta) > 1 | !is.numeric(beta)) {
+    error_check_msg <- append(error_check_msg, 
+                              "- beta must be a single numeric value")
+  }
+  
+  # Check that both beta values are positive
+  else if(beta <= 0) {
+    error_check_msg <- append(error_check_msg, 
+                              "- beta can only take positive values")
+  }
+  
+  # Check for correct data type of p
+  if(length(p) > 1 | !is.numeric(p)) {
+    error_check_msg <- append(error_check_msg, 
+                              "- p must be a single numeric value")
+  }
+  
+  # Check for correct data type of q
+  if(length(q) > 1 | !is.numeric(q)) {
+    error_check_msg <- append(error_check_msg, 
+                              "- q must be a single numeric value")
+  }
+  
+  # Check for correct data type of k
+  if(length(k) > 1 | !is.numeric(k)) {
+    error_check_msg <- append(error_check_msg, 
+                              "- k must be a single numeric value")
+  }
+  
+  # If any error messages have been logged, concatenate these to a single string
+  # and append to the return error_check list
+  if(length(error_check_msg) > 0) {
+    error_check_msg <- paste(c("Input is invalid because: ", error_check_msg),
+                             collapse = " \n ")
+    error_check <- append(error_check, error_check_msg)
+  }
+  # Else set the error_check boolean to FALSE as no errors were logged
+  else {
+    error_check[1] <- FALSE
+  }
+  
+  return(error_check)
+}
+
+# Check if elements of a numeric vector are monotone increasing (not monotone 
+# non-decreasing)
+monotoneInceasing <- function(vec){
+  # vec     (numeric vector) : vector to check
+  # returns (logical)        : boolean value that is TRUE if the elements of the
+  #                            numeric vector are monotone increasing and FALSE
+  #                            otherwise
+  
+  # Boolean to store whether elements of the vector are monotone increasing
+  monotoneInceasing <- TRUE
+  
+  # Loop over each pair of elements in the vector
+  for(i in 2:length(vec)){
+    # Set the boolean to FALSE if the second element is not strictly greater
+    # than the first element
+    if(vec[i-1] >= vec[i]){
+      monotoneInceasing <- FALSE
+    }
+  }
+  
+  return(monotoneInceasing)
+}
+
+#######
+## e ##
+#######
+
+# Initialise the inputs
+xVec_1  <- seq(from = 2, to = 8.5, by = 0.01)
+alpha_1 <- 2.1
+beta_1  <- 0.5
+p_1     <- 3
+q_1     <- 6
+k_1     <- 2
+
+# Calculate the approximate integral
+calcMidRiemann(xVec_1, alpha_1, beta_1, p_1, q_1, k_1)
+
+# The area is calculated to be 4.737 (3 d.p.)
+
+#######
+## f ##
+#######
+
+calcMidRiemannAreas <- function(xSeqList, alpha, beta, p, q, k){
+  
+  totalArea <- 0
+  for(xVec in xSeqList){
+    totalArea <- totalArea + calcMidRiemann(xVec, alpha, beta, p, q, k)
+  }
+    
+  return(totalArea)
+}
+
+#######
+## g ##
+#######
+
+# Initialise the inputs
+xVec_2_1   <- seq(from = 3.5, to = 8, by = 0.01)
+xVec_2_2   <- seq(from = 2, to = 4.3, by = 0.1)
+xVec_2_3   <- seq(from = 1.07, to = 9.012, by = 0.001)
+xSeqList_2 <- list(xVec_2_1, xVec_2_2, xVec_2_3)
+alpha_2    <- 1.9
+beta_2     <- 0.75
+p_2        <- 2.15
+q_2        <- 7
+k_2        <- 1.65
+
+# Calculate the combined area between the curve and x-axis over the intervals
+calcMidRiemannAreas(xSeqList_2, alpha_2, beta_2, p_2, q_2, k_2)
+
+
+# The total area is 10.847 (3 d.p.)
