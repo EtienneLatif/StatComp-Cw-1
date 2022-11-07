@@ -765,3 +765,89 @@ calcMidRiemannAreas(xSeqList_2, alpha_2, beta_2, p_2, q_2, k_2)
 
 
 # The total area is 10.847 (3 d.p.)
+
+
+##################
+##################
+### Question 4 ###
+##################
+##################
+
+# Calculates the natural logarithm of the probability of an observed sequence
+# of weather states
+weatherSeqProb <- function(weatherSeq, trProbs, initProbs){
+  # weatherSeq (character vector) : vector representing the sequence of weather
+  #                                 states with "s" = sunny, "c" = cloudy, "r" =
+  #                                 rainy
+  # trProbs    (numeric matrix)   : matrix of the transition probabilities
+  # initsProbs (numeric vector)   : vector of initial probabilities
+  # returns    (numeric)          : the natural logarithm of the probability of
+  #                                 the sequence given the initial and 
+  #                                 transition probabilities
+  
+  
+  # Encode the weather sequence as numbers for indexing the vector and array
+  weatherSeq <- weatherEncoder(weatherSeq)
+  
+  # Find the probability of the initial state
+  seqProb <- initProbs[weatherSeq[1]]
+  
+  # Multiply by the transition probabilities
+  for(j in 2:length(weatherSeq)){
+    seqProb <- seqProb * trProbs[weatherSeq[j-1], weatherSeq[j]]
+  }
+  
+  # Take the natural logarithm of the probability of the sequence
+  logSeqProb <- log(seqProb)
+  
+  return(logSeqProb)
+}
+
+# Encodes the weather sequence as numeric values which can be used to index the
+# probability data structures
+weatherEncoder <- function(weatherSeq){
+  # weatherSeq (character vector) : vector representing the sequence of weather
+  #                                 states with "s" = sunny, "c" = cloudy, "r" =
+  #                                 rainy
+  # returns    (numeric vector)   : vector representing the sequence of weather
+  #                                 states encoded as 1 = sunny, 2 = cloudy, 3 =
+  #                                 rainy
+
+  # Loop over the vector and modify values individually
+  for(i in 1:length(weatherSeq)){
+    if(weatherSeq[i] == "s"){
+      weatherSeq[i] <- 1
+    }
+    else if(weatherSeq[i] == "c"){
+      weatherSeq[i] <- 2
+    }
+    else if(weatherSeq[i] == "r"){
+      weatherSeq[i] <- 3
+    }
+    else{
+      stop("invalid character in weather sequence")
+    }
+  }
+  
+  return(as.numeric(weatherSeq))
+}
+
+#######
+## b ##
+#######
+
+# Initialise the inputs
+weatherSeq_0 <- c("c", "s", "c", "r", "s", "s")
+trProbs_r <- c(0.5, 0.4, 0.1, 0.33, 0.35, 0.32, 0.3, 0.3, 0.4)
+trProbs_0 <- matrix(data=trProbs_r, nrow = 3, byrow = TRUE)
+initProbs_0 <- c(0.45, 0.25, 0.3)
+
+# Compute the natural logarithm of the probability of the sequence
+weatherSeqProb(weatherSeq_0, trProbs_0, initProbs_0)
+
+# The natural log of the probability of the sequence is -6.448
+
+#######
+## c ##
+#######
+
