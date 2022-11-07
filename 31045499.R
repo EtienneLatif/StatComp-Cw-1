@@ -763,7 +763,6 @@ k_2        <- 1.65
 # Calculate the combined area between the curve and x-axis over the intervals
 calcMidRiemannAreas(xSeqList_2, alpha_2, beta_2, p_2, q_2, k_2)
 
-
 # The total area is 10.847 (3 d.p.)
 
 
@@ -784,7 +783,6 @@ weatherSeqProb <- function(weatherSeq, trProbs, initProbs){
   # returns    (numeric)          : the natural logarithm of the probability of
   #                                 the sequence given the initial and 
   #                                 transition probabilities
-  
   
   # Encode the weather sequence as numbers for indexing the vector and array
   weatherSeq <- weatherEncoder(weatherSeq)
