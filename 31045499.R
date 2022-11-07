@@ -784,15 +784,16 @@ weatherSeqProb <- function(weatherSeq, trProbs, initProbs){
   #                                 the sequence given the initial and 
   #                                 transition probabilities
   
+  
   # Encode the weather sequence as numbers for indexing the vector and array
-  weatherSeq <- weatherEncoder(weatherSeq)
+  weatherSeq <- weatherSeqEncoder(weatherSeq)
   
   # Find the probability of the initial state
   seqProb <- initProbs[weatherSeq[1]]
   
   # Multiply by the transition probabilities
-  for(j in 2:length(weatherSeq)){
-    seqProb <- seqProb * trProbs[weatherSeq[j-1], weatherSeq[j]]
+  for(i in 2:length(weatherSeq)){
+    seqProb <- seqProb * trProbs[weatherSeq[i-1], weatherSeq[i]]
   }
   
   # Take the natural logarithm of the probability of the sequence
@@ -803,7 +804,7 @@ weatherSeqProb <- function(weatherSeq, trProbs, initProbs){
 
 # Encodes the weather sequence as numeric values which can be used to index the
 # probability data structures
-weatherEncoder <- function(weatherSeq){
+weatherSeqEncoder <- function(weatherSeq){
   # weatherSeq (character vector) : vector representing the sequence of weather
   #                                 states with "s" = sunny, "c" = cloudy, "r" =
   #                                 rainy
@@ -823,7 +824,7 @@ weatherEncoder <- function(weatherSeq){
       weatherSeq[i] <- 3
     }
     else{
-      stop("invalid character in weather sequence")
+      stop("invalid value in weather sequence")
     }
   }
   
@@ -836,9 +837,9 @@ weatherEncoder <- function(weatherSeq){
 
 # Initialise the inputs
 weatherSeq_0 <- c("c", "s", "c", "r", "s", "s")
-trProbs_r <- c(0.5, 0.4, 0.1, 0.33, 0.35, 0.32, 0.3, 0.3, 0.4)
-trProbs_0 <- matrix(data=trProbs_r, nrow = 3, byrow = TRUE)
-initProbs_0 <- c(0.45, 0.25, 0.3)
+trProbs_0r   <- c(0.5, 0.4, 0.1, 0.33, 0.35, 0.32, 0.3, 0.3, 0.4) # raw values
+trProbs_0    <- matrix(data = trProbs_0r, nrow = 3, byrow = TRUE)
+initProbs_0  <- c(0.45, 0.25, 0.3)
 
 # Compute the natural logarithm of the probability of the sequence
 weatherSeqProb(weatherSeq_0, trProbs_0, initProbs_0)
@@ -849,3 +850,119 @@ weatherSeqProb(weatherSeq_0, trProbs_0, initProbs_0)
 ## c ##
 #######
 
+# Calculate the natural logarithm of the probability of the observed sequences
+# from a weather and jacket colour HMM
+weatherColourProbs <- function(colourSeq, emitProbs, weatherSeq, trProbs, 
+                               initProbs){
+  # colourSeq  (character vector) : vector representing the sequence of jacket
+  #                                 states with "B" = black and "W" = white
+  # emitProbs  (numeric matrix)   : matrix of emission probabilities for jacket
+  #                                 colour given weather state
+  # weatherSeq (character vector) : vector representing the sequence of weather
+  #                                 states with "s" = sunny, "c" = cloudy, "r" =
+  #                                 rainy
+  # trProbs    (numeric matrix)   : matrix of the transition probabilities
+  # initsProbs (numeric vector)   : vector of initial probabilities
+  # returns    (numeric)          : the natural logarithm of the probability of
+  #                                 the sequences given the initial, transition 
+  #                                 and emission probabilities
+  
+  # The probability of the sequence:
+  # P(Y_1 | X_1)P(X_1) P(Y_2 | X_2)P(X_2 | X_1) ... P(Y_n | X_n)P(X_n | X_n-1) 
+  # can be written as:
+  # P(X_1) P(X_2 | X_1) ... P(X_n | X_n-1) P(Y_1 | X_1) ... P(Y_n | X_n)
+  # such that we can reuse the previous code to calculate the probability of the
+  # "hidden" weather sequence using the transition probabilities and multiply 
+  # this result by the emission probabilities of the observed sequence of 
+  # jacket colours given weather states to get the joint probability of both
+  # sequences
+  
+  # Calculate the natural logarithm of the probability of the hidden states
+  weatherSeqProb <- weatherSeqProb(weatherSeq, trProbs, initProbs)
+  
+  # Calculate the natural logarithm of the probability of the observed jacket 
+  # sequence given the "hidden" weather states
+  colourSeqProb <- colourSeqProb(colourSeq, emitProbs, weatherSeq)
+  
+  # Using log(XY) = log(X) + log(Y) we can obtain the natural logarithm of the 
+  # joint probability of the sequences by adding the two natural logs of
+  # probabilities already found
+  weatherColourProbs <- weatherSeqProb + colourSeqProb
+  
+  return(weatherColourProbs)
+}
+
+# Calculate the natural logarithm of the probability of the observed sequenced
+# of jacket colours given the "hidden" sequence of weather states
+colourSeqProb <- function(colourSeq, emitProbs, weatherSeq){
+  # colourSeq  (character vector) : vector representing the sequence of jacket
+  #                                 states with "B" = black and "W" = white
+  # emitProbs  (numeric matrix)   : matrix of emission probabilities for jacket
+  #                                 colour given weather state
+  # weatherSeq (character vector) : vector representing the sequence of weather
+  #                                 states with "s" = sunny, "c" = cloudy, "r" =
+  #                                 rainy
+  # returns    (numeric)          : the probability of the observed sequence of
+  #                                 jacket colours given the sequence of
+  #                                 "hidden" weather states
+  
+  
+  # Encode the sequences as numbers for indexing the emission probability matrix
+  weatherSeq <- weatherSeqEncoder(weatherSeq)
+  colourSeq  <- colourSeqEncoder(colourSeq)
+  
+  # Initialise the probability at 1
+  colourSeqProb <- 1
+  
+  # Multiply by the emission probabilities
+  for(i in 1:length(colourSeq)){
+    colourSeqProb <- colourSeqProb * emitProbs[weatherSeq[i], colourSeq[i]]
+  }
+  
+  # Take the natural logarithm of the probability of the jacket colour sequence
+  logColourSeqProb <- log(colourSeqProb)
+  
+  return(logColourSeqProb)
+}
+
+colourSeqEncoder <- function(colourSeq){
+  # colourSeq  (character vector) : vector representing the sequence of jacket
+  #                                 states with "B" = black and "W" = white
+  # returns    (numeric vector)   : vector representing the sequence of jacket
+  #                                 states encoded as 1 = black and 2 = white
+  
+  # Loop over the vector and modify values individually
+  for(i in 1:length(colourSeq)){
+    if(colourSeq[i] == "B"){
+      colourSeq[i] <- 1
+    }
+    else if(colourSeq[i] == "W"){
+      colourSeq[i] <- 2
+    }
+    else{
+      stop("invalid value in jacket colour sequence")
+    }
+  }
+  
+  return(as.numeric(colourSeq))
+}
+
+#######
+## d ##
+#######
+
+# Initialise the inputs
+colourSeq_1  <- c("B", "W", "W", "B", "B", "W", "W", "W")
+emitProbs_1r <- c(0.2, 0.8, 0.55, 0.45, 0.9, 0.1) # raw values
+emitProbs_1  <- matrix(data = emitProbs_1r, nrow = 3, byrow = TRUE)
+weatherSeq_1 <- c("r", "s", "c", "r", "c", "r", "s", "s")
+trProbs_1r   <- c(0.55, 0.25, 0.2, 0.25, 0.35, 0.4, 0.2, 0.15, 0.65)
+trProbs_1    <- matrix(data = trProbs_1r, nrow = 3, byrow = TRUE)
+initProbs_1  <- c(0.35, 0.45, 0.2)
+
+# Calculate the natural logarithm of the joint probability of the observed
+# sequences
+weatherColourProbs(colourSeq_1, emitProbs_1, weatherSeq_1, trProbs_1, 
+                   initProbs_1)
+
+# The natural log of the joint probability of the observed sequences is -15.121
