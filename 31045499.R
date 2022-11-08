@@ -110,22 +110,21 @@ boxplot(eco.df$logDensity ~ eco.df$habitat,
         outcol = "#41729F")
 dev.off() # reset options for par()
 
-class(eco.df$habitat)
-
 #######
 ## c ##
 #######
 
-# Calculate the F-test statistic for a given continuous variable and factor
+# Calculates the F-test statistic for a given continuous variable and factor
 fStat <- function(y, factor){
   #
   # y and factor must be in the same data frame
   #
-  # y      (numeric vector) : the continuous variable that we wish to test 
-  #                           whether is the same across groups
-  # factor (vector)         : the categorical variable with different 
-  #                           groups to test across
-  # returns (numeric)       : the F-test statistic
+  # y       (numeric vector) : the continuous variable that we wish to test 
+  #                            whether is the same across groups
+  # factor  (vector)         : the categorical variable with different 
+  #                            groups to test across
+  # returns (numeric)        : the F-test statistic as given by Eq. (2) in the 
+  #                            question sheet
   
   # Find the number of observations
   overallCount   <- length(y)
@@ -140,12 +139,11 @@ fStat <- function(y, factor){
   groupCount     <- length(groups)
   
   # Calculate the F-test statistic numerator
-  fStatNumerator <- fStatNumerator(y, factor, groups, overallMean, groupCount)
-  print(fStatNumerator)
+  fStatNumerator   <- fStatNumerator(y, factor, groups, overallMean, groupCount)
   
   # Calculate the F-test statistic denominator
-  fStatDenominator <- fStatDenominator(y, factor, groups, overallCount, groupCount)
-  print(fStatDenominator)
+  fStatDenominator <- fStatDenominator(y, factor, groups, overallCount, 
+                                       groupCount)
   
   # Calculate the F-test statistic
   fStat <- fStatNumerator / fStatDenominator
@@ -153,6 +151,7 @@ fStat <- function(y, factor){
   return(fStat)
 }
 
+# Calculates the numerator of the F-test statistic
 fStatNumerator <- function(y, factor, groups, overallMean, groupCount){
   # y            (numeric vector)  : the continuous variable that we wish to 
   #                                  test whether is the same across groups
@@ -189,7 +188,16 @@ fStatNumerator <- function(y, factor, groups, overallMean, groupCount){
   return(fStatNumerator)
 }
 
+# Calculates the denominator of the F-test statistic
 fStatDenominator <- function(y, factor, groups, overallCount, groupCount){
+  # y             (numeric vector)  : the continuous variable that we wish to 
+  #                                   test whether is the same across groups
+  # factor       (vector)           : the categorical variable with different 
+  #                                   groups to test across
+  # groups       (character vector) : the group names in the factor we are 
+  #                                   testing against
+  # overallCount (numeric)          : total number of observations
+  # groupCount   (numeric)          : the number of groups of the factor
   
   # Store the total sum of the difference between each observation and the mean
   # of y for the group it belongs to squared
@@ -220,7 +228,6 @@ fStatDenominator <- function(y, factor, groups, overallCount, groupCount){
   return(fStatDenominator)
 }
 
-
 # Calculate the F-test statistic for the data
 fStat(eco.df$density, eco.df$habitat)
 
@@ -236,12 +243,142 @@ fStat(eco.df$density, eco.df$habitat)
 # The p-value of the F-test is 3.996x10^-5 (3 d.p.)
 
 #######
-## c ##
+## d ##
 #######
 
+# Calculates the F-test statistic for a given continuous variable and factor
+fStat2 <- function(y, factor){
+  #
+  # y and factor must be in the same data frame
+  #
+  # y       (numeric vector) : the continuous variable that we wish to test 
+  #                            whether is the same across groups
+  # factor  (vector)         : the categorical variable with different 
+  #                            groups to test across
+  # returns (numeric)        : the F-test statistic as given by Eq. (2) in the 
+  #                            question sheet
+  
+  # Get the overall mean
+  overallMean <- mean(y)
+  
+  # Get the components of the sum in the numerator of the F-statistic equation
+  fStatNumComps  <- tapply(y, factor, fStatNumerator2, overallMean = overallMean)
+  
+  # Calculate the numerator of the F-statistic
+  fStatNumerator <- sum(fStatNumComps) / (length(unique(factor)) - 1)
+  
+  # Get the components of the outer sum in the denominator of the F-statistic
+  # equation
+  fStatDenComps    <- tapply(y, factor, fStatDenominator2)
+  
+  # Calculate the denominator of the F-statistic
+  fStatDenominator <- sum(fStatDenComps) / (length(y) - length(unique(factor)))
+  
+  # Calculate the F-statistic
+  fStat <- fStatNumerator / fStatDenominator
+  
+  return(fStat)
+}
 
+# Computes the component of the sum in the numerator of the F-test statistic for 
+# a specific group in the subset (i.e. for a single i in {1,...,k})
+fStatNumerator2 <- function(subset, overallMean){
+  # subset      (numeric vector) : a subset of the y variable for a specific 
+  #                                group of the factor
+  # overallMean (numeric)        : the overall mean of the variable y
+  # returns     (numeric)        : the product of the length of the subset and 
+  #                                the squared difference between the mean of y
+  #                                for the subset and the overall mean
+  
+  # Get the number of observations in the group
+  groupLength  <- length(subset)
+  
+  # Find the mean of y conditional on the subset
+  groupMean    <- mean(subset)
+  
+  # Calculate the component of the numerator for the given subset
+  fStatNumComp <- groupLength * (groupMean - overallMean) ^ 2
+  
+  return(fStatNumComp)
+}
 
+# Computes the component of the outer sum in the numerator of the F-test
+# statistic formula for a specific group in the subset (i.e. for a single i in
+# {1,...,K})
+fStatDenominator2 <- function(subset){
+  # subset  (numeric vector) : a subset of the y variable for a specific group  
+  #                            of the factor
+  # returns (numeric)        : the sum of squared differences between each 
+  #                            observed value in the subset and the mean of the
+  #                            values in the subset
+  
+  # Get the group mean
+  groupMean <- mean(subset)
+  
+  # Get the components of the inner sum in the denominator of the F-test
+  # statistic equation i.e. the difference between each observation and the
+  # group mean squared
+  squaredDifferences <- sapply(subset, squaredDifference, y = groupMean)
+  
+  # Get the sum of the squared differences
+  fStatDenComp <- sum(squaredDifferences)
+  
+  return(fStatDenComp)
+}
 
+squaredDifference <- function(x, y){
+  # x, y    (numeric) : two numbers to find the squared difference of
+  # returns (numeric) : the difference of the numbers squared
+  
+  return((x-y)^2)
+}
+
+# Calculate the F-test statistic for the data
+fStat2(eco.df$density, eco.df$habitat)
+
+# The F-test statistic is verified to be 10.481. This result is the same as with
+# the first function so to avoid tautology the p-value does not need to be 
+# recalculated; it is again 3.996x10^-5 (3 d.p.)
+
+#######
+## e ##
+#######
+
+# Calculate the mean density for each group
+meanDensA <- mean(eco.df$density[eco.df$habitat == "A"])
+meanDensB <- mean(eco.df$density[eco.df$habitat == "B"])
+meanDensC <- mean(eco.df$density[eco.df$habitat == "C"])
+
+# As libraries can not be used, this function will act in place of a hashmap 
+# i.e. when passed a habitat type it will return the mean density for that 
+# habitat. This increases efficiency as each mean was only calculated once and
+# the F-test residual column can be added by column-wise operations rather than 
+# element-wise operations.
+densityMean <- function(group){
+  # group   (character) : name of habitat type ("A", "B" or "C")
+  # returns (numeric)   : mean of density for the given habitat
+
+  return(get(paste("meanDens", group, sep = "")))
+}
+
+# Add a column to the data frame with the mean density for the corresponding 
+# habitat type of each value
+eco.df$habitatMean <- sapply(eco.df$habitat, densityMean)
+
+# Add a column to the data frame containing the F-test residuals
+eco.df$fResid <- eco.df$density - eco.df$habitatMean
+
+qqnorm(eco.df$fResid, 
+       pch = 19, 
+       col = "#274472", 
+       main = "Quantiles of F-test residuals vs theoretical quantiles from 
+       standard Gaussian distribution",
+       cex.main = 1.5,
+       cex.lab = 1.5)
+qqline(eco.df$fResid, lwd = 2, col = "#41729F")
+
+# The normality assumption does not appear valid. The curvature of the QQ-plot
+# indicates that the residuals are right-skewed.
 
 ##################
 ##################
