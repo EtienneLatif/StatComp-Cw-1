@@ -31,12 +31,14 @@ summary(eco.df$density)
 ######
 
 # Find the unique values in the column
-unique(eco.df$habitat)
+unique(eco.df$habitat) 
+
+# Habitat can take values "A", "B" and "C"
 
 # Find the number of observations of each value
-dim(eco.df[eco.df$habitat=="A",]) # 100 observations of A
-dim(eco.df[eco.df$habitat=="B",]) # 125 observations of B
-dim(eco.df[eco.df$habitat=="C",]) # 75 observations of C
+dim(eco.df[eco.df$habitat=="A",])[1] # 100 observations of A
+dim(eco.df[eco.df$habitat=="B",])[1] # 125 observations of B
+dim(eco.df[eco.df$habitat=="C",])[1] # 75 observations of C
 
 # There are 100 observations of type A, 125 observations of 
 # type B and 75 observations of type C
@@ -55,8 +57,14 @@ eco.df$logDensity <- log(1 + eco.df$density)
 # Plot density by habitat type
 boxplot(eco.df$density ~ eco.df$habitat, 
         main = "Density versus habitat type",
+        cex.main = 1.5,
         xlab = "Habitat type",
-        ylab = "Density (count per km^2)")
+        ylab = "Density (count per km^2)",
+        cex.lab = 1.5,
+        col = "#274472",
+        pch = 19,
+        cex = 1.25,
+        outcol = "#41729F")
 
 ######
 # ii #
@@ -65,144 +73,174 @@ boxplot(eco.df$density ~ eco.df$habitat,
 # Plot log density by habitat type
 boxplot(eco.df$logDensity ~ eco.df$habitat, 
         main = "Log density versus habitat type",
+        cex.main = 1.5,
         xlab = "Habitat type",
-        ylab = "Log density")
+        ylab = "Log density", # log variables are unitless
+        cex.lab = 1.5,
+        col = "#274472",
+        pch = 19,
+        cex = 1.25,
+        outcol = "#41729F")
 
 #######
 # iii #
 #######
 
 # Display the two boxplots in a 2x1 lattice
-par(mfrow = c(1, 2))
+par(mfrow = c(2, 1))
 boxplot(eco.df$density ~ eco.df$habitat, 
         main = "Density versus habitat type",
+        cex.main = 1.5,
         xlab = "Habitat type",
-        ylab = "Density (count per km^2)")
+        ylab = "Density (count per km^2)",
+        cex.lab = 1.5,
+        col = "#274472",
+        pch = 19,
+        cex = 1.25,
+        outcol = "#41729F")
 boxplot(eco.df$logDensity ~ eco.df$habitat, 
         main = "Log density versus habitat type",
+        cex.main = 1.5,
         xlab = "Habitat type",
-        ylab = "Log density")
+        ylab = "Log density", # log variables are unitless
+        cex.lab = 1.5,
+        col = "#274472",
+        pch = 19,
+        cex = 1.25,
+        outcol = "#41729F")
+dev.off() # reset options for par()
+
+class(eco.df$habitat)
 
 #######
 ## c ##
 #######
 
-# Function to return F-test statistic
-f_stat <- function(y, factor){
-  # y       : the continuous variable that we wish to test whether is the same
-  #           across groups
-  # factor  : the categorical variables which with different groups to test
-  #           across
-  # returns : the F-test statistic is returned
+# Calculate the F-test statistic for a given continuous variable and factor
+fStat <- function(y, factor){
+  #
+  # y and factor must be in the same data frame
+  #
+  # y      (numeric vector) : the continuous variable that we wish to test 
+  #                           whether is the same across groups
+  # factor (vector)         : the categorical variable with different 
+  #                           groups to test across
+  # returns (numeric)       : the F-test statistic
   
-  # Find the levels of the factor
-  levels <- unique(factor) 
+  # Find the number of observations
+  overallCount   <- length(y)
   
-  # Find the overall and factor sample means of y
-  overall_mean <- mean(y) # Overall sample mean
-  factor_means <- factor_means(y, factor, levels) # Sample means by factor.
+  # Find the overall mean of the continuous variable
+  overallMean    <- mean(y)
   
-  # Find the total and factor-level number of observations
-  K   <- length(levels) # Number of levels of the factor
-  N_i <- lapply(levels, function(x) length(y[factor == x])) # Number of
-  # observations per
-  # factor
+  # Find the groups of the factor
+  groups         <- unique(factor)
   
-  # Calculate the numerator
-  numerator   <- f_stat_numerator(overall_mean, factor_means, K, N_i)
+  # Find the number of groups
+  groupCount     <- length(groups)
   
-  # Calculate the denominator
-  denominator <- f_stat_denominator(y, factor, levels, factor_means, K, N_i)
+  # Calculate the F-test statistic numerator
+  fStatNumerator <- fStatNumerator(y, factor, groups, overallMean, groupCount)
+  print(fStatNumerator)
   
-  return(numerator / denominator)
+  # Calculate the F-test statistic denominator
+  fStatDenominator <- fStatDenominator(y, factor, groups, overallCount, groupCount)
+  print(fStatDenominator)
+  
+  # Calculate the F-test statistic
+  fStat <- fStatNumerator / fStatDenominator
+  
+  return(fStat)
 }
 
-# Function to find means by levels of a factor
-factor_means <- function(y, factor, levels){
-  # y       : the continuous variable that we wish to find means of
-  # factor  : the categorical variable with different groups
-  # groups  : the groups of the factor
-  # returns : a list of means
+fStatNumerator <- function(y, factor, groups, overallMean, groupCount){
+  # y            (numeric vector)  : the continuous variable that we wish to 
+  #                                  test whether is the same across groups
+  # factor      (vector)           : the categorical variable with different 
+  #                                  groups to test across
+  # groups      (character vector) : the group names in the factor we are 
+  #                                  testing against
+  # overallMean (numeric)          : the overall mean of y
+  # groupCount  (numeric)          : the number of groups of the factor
   
-  factor_means <- rep(NA, length(levels)) # Create an empty list to store the 
-  # means
+  # Initialise the sum at zero
+  weightedSumMeanDifference <- 0
   
-  # Loop over the levels of the factor and add the means to the list
-  i <- 1
-  for (level in levels) {
-    factor_means[[i]] <- mean(y[factor == level])
-    i <- i + 1
+  # Loop over the groups to perform the summation
+  for(group in groups){
+    # Find the mean of y for the given group
+    groupMean                 <- mean(y[factor == group])
+    
+    # Find the difference between the group mean and overall mean squared
+    meanDifference            <- (groupMean - overallMean) ^ 2
+    
+    # Weight the squared difference in means by the number of observations of y
+    # for the given group
+    weightedMeanDifference    <- length(y[factor == group]) * meanDifference
+    
+    # Add the result to the weighted sum of mean differences
+    weightedSumMeanDifference <- weightedSumMeanDifference + 
+                                 weightedMeanDifference
   }
   
-  return(factor_means)
+  # Divide the sum by the degrees of freedom
+  fStatNumerator <- weightedSumMeanDifference / (groupCount - 1)
+  
+  return(fStatNumerator)
 }
 
-# Function to calculate the numerator of the F-test statistic
-f_stat_numerator <- function(overall_mean, factor_means, K, N_i){
-  # overall_mean : the overall sample mean of the continuous variable
-  # factor_means : the sample mean of the continuous variable by the factor
-  # K            : the number of levels of the factor
-  # N_i          : the number of observations by factor
-  # returns      : the value of the numerator of the F-test statistic
+fStatDenominator <- function(y, factor, groups, overallCount, groupCount){
   
-  # Calculate the values of the factor-level means minus the overall mean
-  # squared
-  mean_diff_squared <- (factor_means - overall_mean) ^ 2
+  # Store the total sum of the difference between each observation and the mean
+  # of y for the group it belongs to squared
+  # Initialise at 0
+  sumMeanDifference <- 0
   
-  # Multiply the mean difference squared values by the number of observations
-  # for each factor and sum these values together.
-  weighted_mean_diff <- 0
-  for (i in 1:K){
-    weighted_mean_diff <- weighted_mean_diff + 
-      (N_i[[i]] * mean_diff_squared[[i]])
-  }
+  for(group in groups){
+    # Get the observations of y for the given group
+    ySubset                <- y[factor == group]
+    
+    # Get the mean of y for the given group
+    groupMean              <- mean(ySubset)
+    
+    # Get the difference between each observation in the subset and the group
+    # mean squared
+    groupMeanDifference    <- (ySubset - groupMean) ^ 2
+    
+    # Sum the squared differences
+    sumGroupMeanDifference <- sum(groupMeanDifference)
+    
+    # Add to the total squared differences of observations and their respective
+    # group mean
+    sumMeanDifference      <- sumMeanDifference + sumGroupMeanDifference
+  } 
   
-  # Divide the sum of the weighted mean difference squared values by the number
-  # of levels of the factor minus one.
-  numerator <- weighted_mean_diff / (K - 1)
+  fStatDenominator <- sumMeanDifference / (overallCount - groupCount)
   
-  return(numerator)
+  return(fStatDenominator)
 }
 
-# Function to calculate the denominator of the F-test statistic
-f_stat_denominator <- function(y, factor, levels, factor_means, K, N_i){
-  # y            : the continuous variable that we wish to test whether is the 
-  #                same across groups
-  # factor       : the categorical variables which with different groups to test
-  #                across
-  # levels       : the levels of the factor
-  # factor_means : the sample mean of the continuous variable by the factor
-  # K            : the number of levels of the factor
-  # N_i          : the number of observations by factor
-  # returns      : the value of the denominator of the F-test statistic
-  
-  denominator <- 0
-  for (i in 1:K){
-    for (j in 1:N_i[[i]]){
-      denominator <- denominator + ((y[factor == levels[[i]]][j] - 
-                                       factor_means[i]) ^ 2)
-    }
-  }
-  
-  return(denominator)
-}
-
-(((100 * (a_mean - overall_mean)^2) + (125 * (b_mean - overall_mean)^2) +
-    (75 * (c_mean - overall_mean)^2)) / 2) / 1796.535
 
 # Calculate the F-test statistic for the data
-f_stat(eco.df$density, eco.df$habitat)
+fStat(eco.df$density, eco.df$habitat)
 
-# The F-test statistic is 0.035
+# The F-test statistic is 10.481 (3 d.p.)
 
 ######
 # ii #
 ######
 
-# Find the p-value of the F test
-pf(0.352901, 2, 297)
+# Find the p-value of the F test by 1 - P(F < 10.481)
+1 - pf(q = 10.481, df1 = 2, df2 = 297)
 
-# The p-value of the F-test is 0.297
+# The p-value of the F-test is 3.996x10^-5 (3 d.p.)
+
+#######
+## c ##
+#######
+
+
+
 
 
 ##################
