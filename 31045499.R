@@ -87,6 +87,8 @@ boxplot(eco.df$logDensity ~ eco.df$habitat,
 #######
 
 # Display the two boxplots in a 2x1 lattice
+# Code for plots has been repeated as no clear way to reuse a plot object in 
+# base R graphics
 par(mfrow = c(2, 1))
 boxplot(eco.df$density ~ eco.df$habitat, 
         main = "Density versus habitat type",
@@ -153,9 +155,9 @@ fStat <- function(y, factor){
 
 # Calculates the numerator of the F-test statistic
 fStatNumerator <- function(y, factor, groups, overallMean, groupCount){
-  # y            (numeric vector)  : the continuous variable that we wish to 
+  # y           (numeric vector)   : the continuous variable that we wish to 
   #                                  test whether is the same across groups
-  # factor      (vector)           : the categorical variable with different 
+  # factor      (character vector)           : the categorical variable with different 
   #                                  groups to test across
   # groups      (character vector) : the group names in the factor we are 
   #                                  testing against
@@ -168,14 +170,14 @@ fStatNumerator <- function(y, factor, groups, overallMean, groupCount){
   # Loop over the groups to perform the summation
   for(group in groups){
     # Find the mean of y for the given group
-    groupMean                 <- mean(y[factor == group])
+    groupMean <- mean(y[factor == group])
     
     # Find the difference between the group mean and overall mean squared
-    meanDifference            <- (groupMean - overallMean) ^ 2
+    meanDifference <- (groupMean - overallMean) ^ 2
     
     # Weight the squared difference in means by the number of observations of y
     # for the given group
-    weightedMeanDifference    <- length(y[factor == group]) * meanDifference
+    weightedMeanDifference <- length(y[factor == group]) * meanDifference
     
     # Add the result to the weighted sum of mean differences
     weightedSumMeanDifference <- weightedSumMeanDifference + 
@@ -206,23 +208,24 @@ fStatDenominator <- function(y, factor, groups, overallCount, groupCount){
   
   for(group in groups){
     # Get the observations of y for the given group
-    ySubset                <- y[factor == group]
+    ySubset <- y[factor == group]
     
     # Get the mean of y for the given group
-    groupMean              <- mean(ySubset)
+    groupMean <- mean(ySubset)
     
     # Get the difference between each observation in the subset and the group
     # mean squared
-    groupMeanDifference    <- (ySubset - groupMean) ^ 2
+    groupMeanDifference <- (ySubset - groupMean) ^ 2
     
     # Sum the squared differences
     sumGroupMeanDifference <- sum(groupMeanDifference)
     
     # Add to the total squared differences of observations and their respective
     # group mean
-    sumMeanDifference      <- sumMeanDifference + sumGroupMeanDifference
+    sumMeanDifference <- sumMeanDifference + sumGroupMeanDifference
   } 
   
+  # Divide the sum by the degrees of freedom
   fStatDenominator <- sumMeanDifference / (overallCount - groupCount)
   
   return(fStatDenominator)
@@ -326,6 +329,7 @@ fStatDenominator2 <- function(subset){
   return(fStatDenComp)
 }
 
+# Auxiliary function to find squared difference of two numbers
 squaredDifference <- function(x, y){
   # x, y    (numeric) : two numbers to find the squared difference of
   # returns (numeric) : the difference of the numbers squared
@@ -336,9 +340,9 @@ squaredDifference <- function(x, y){
 # Calculate the F-test statistic for the data
 fStat2(eco.df$density, eco.df$habitat)
 
-# The F-test statistic is verified to be 10.481. This result is the same as with
-# the first function so to avoid tautology the p-value does not need to be 
-# recalculated; it is again 3.996x10^-5 (3 d.p.)
+# The F-test statistic is verified to be 10.481 (3 d.p.). This result is the 
+# same as with the first function so to avoid tautology the p-value does not 
+# need to be recalculated; it is again 3.996x10^-5 (3 d.p.)
 
 #######
 ## e ##
@@ -368,6 +372,9 @@ eco.df$habitatMean <- sapply(eco.df$habitat, densityMean)
 # Add a column to the data frame containing the F-test residuals
 eco.df$fResid <- eco.df$density - eco.df$habitatMean
 
+# Plot the QQ plot for the F-test residuals
+par(mfrow = c(1, 1)) # avoid a recurring bug of plot displaying in top pane of
+                     # previous 2x1 lattice
 qqnorm(eco.df$fResid, 
        pch = 19, 
        col = "#274472", 
@@ -376,9 +383,11 @@ qqnorm(eco.df$fResid,
        cex.main = 1.5,
        cex.lab = 1.5)
 qqline(eco.df$fResid, lwd = 2, col = "#41729F")
+dev.off() # reset options for par()
 
 # The normality assumption does not appear valid. The curvature of the QQ-plot
 # indicates that the residuals are right-skewed.
+
 
 ##################
 ##################
@@ -400,27 +409,27 @@ calcLogMix2Gamma <- function(x, alpha, beta, p){
   # returns (numeric)        : log joint density of the model
   
   # Get the information about validity of the inputs
-  error_check <- verifyGammaInput(x, alpha, beta, p)
+  errorCheck <- verifyGammaInput(x, alpha, beta, p)
   
   # If inputs are invalid, terminate the function and display the reasons
-  if(error_check[1]){
-    stop(error_check[2])
+  if(errorCheck[1]){
+    stop(errorCheck[2])
   }
   
   # Create a vector of outputs from the Gamma mixture model pdf
   f_x <- mix2GammaPdf(x, alpha, beta, p)
   
   # Multiply the outputs together to get the joint density
-  joint_density <- 1
+  jointDensity <- 1
   for (f_xi in f_x){
-    joint_density <- joint_density * f_xi
+    jointDensity <- jointDensity * f_xi
   }
   
   # Take the natural logarithm of the joint density
-  log_density <- log(joint_density)
+  logDensity <- log(jointDensity)
   
   # Return the output
-  return(log_density)
+  return(logDensity)
 }
 
 # Function to return the density of a single Gamma mixture variable
@@ -478,74 +487,74 @@ verifyGammaInput <- function(x, alpha, beta, p){
   
   # Default to TRUE and set to FALSE if no errors are found to avoid
   # repetitively reassigning value to TRUE if multiple errors found
-  error_check <- c(TRUE)
+  errorCheck <- c(TRUE)
   
   # Create a list to store messages about errors
   # These error messages will be concatenated into one string after all errors
   # are checked for and added to the error_check object
-  error_check_msg <- list()
+  errorCheckMessage <- list()
   
   # Check for correct data type of x
   if(!is.vector(x) | !is.numeric(x)){
-    error_check_msg <- append(error_check_msg, "- x must be a numeric vector")
+    errorCheckMessage <- append(errorCheckMessage, "- x must be a numeric vector")
   } 
   
   # Check that all x values are positive
   else if(any(x <= 0)) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- x must contain only positive values")
   } 
   
   # Check for correct data type of alpha
   if(!is.vector(alpha) | !is.numeric(alpha) | length(alpha) != 2) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- alpha must be a numeric vector of length 2")
   }
   
   # Check that both alpha values are positive
   else if(any(alpha <= 0)) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- alpha must contain only positive values")
   }
   
   # Check for correct data type of beta
   if(!is.vector(beta) | !is.numeric(beta) | length(beta) != 2) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- beta must be a numeric vector of length 2")
   }
   
   # Check that both beta values are positive
   else if(any(beta <= 0)) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- beta must contain only positive values")
   }
   
   # Check for the type of p
   if(!is.numeric(p) | length(p) != 1) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- p must be a single numeric value")
   }
   
   # Check that p takes a value in [0,1]
   else if(p < 0 | p > 1){
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- p must be between 0 and 1 inclusive")
   }
   
   # If any error messages have been logged, concatenate these to a single string
   # and append to the return error_check list
-  if(length(error_check_msg) > 0) {
-    error_check_msg <- paste(c("Input is invalid because: ", error_check_msg),
+  if(length(errorCheckMessage) > 0) {
+    errorCheckMessage <- paste(c("Input is invalid because: ", errorCheckMessage),
                              collapse = " \n ")
-    error_check <- append(error_check, error_check_msg)
+    errorCheck <- append(errorCheck, errorCheckMessage)
   }
   
   # Else set the error_check boolean to FALSE as no errors were logged
   else {
-    error_check[1] <- FALSE
+    errorCheck[1] <- FALSE
   }
   
-  return(error_check)
+  return(errorCheck)
 }
 
 #######
@@ -587,107 +596,119 @@ smoothCurve <- function(x, alpha, beta, p, q, k){
   #                                  displayed in Eq. (5)
   
   # Get the information about validity of the inputs
-  error_check <- verifySmoothInput(x, alpha, beta, p, q, k)
+  errorCheck <- verifySmoothInput(x, alpha, beta, p, q, k)
   
   # If inputs are invalid, terminate the function and display the reasons
-  if(error_check[1]){
-    stop(error_check[2])
+  if(errorCheck[1]){
+    stop(errorCheck[2])
   }
   
   # Calculate the input to the log(.) function in Eq. (5)
   numerator   <- (gamma(x + beta) ^ k) * (p ^ alpha) * (q ^ beta)
   denominator <- (gamma(alpha) ^ k) * (gamma(beta) ^ k)
-  log_input   <- numerator / denominator
+  logInput    <- numerator / denominator
   
   # Calculate the input to the sin(.) function in Eq. (5)
-  sin_input   <- (1 / (2 * alpha)) * log(log_input)
+  sinInput    <- (1 / (2 * alpha)) * log(logInput)
   
   # Calculate the output of the function in Eq. (5)
-  output      <- sin(sin_input)
+  output      <- sin(sinInput)
   
   return(output)
 }
 
-## NEEDS COMMENTING BELOW ##
-
 # Function to verify the validity of inputs to the smooth curve function
 verifySmoothInput <- function(x, alpha, beta, p, q, k){
+  # x       (numeric value/vector) : input value
+  # alpha   (numeric)              : alpha parameter
+  # beta    (numeric)              : beta parameter
+  # p       (numeric)              : p parameter
+  # q       (numeric)              : q parameter
+  # k       (numeric)              : k parameter
+  # returns (list)           : a list with the first entry as a boolean 
+  #                            representing whether the inputs are valid (TRUE
+  #                            indicates invalid) and the second entry a string
+  #                            displaying information about the error
+  
   # Default to TRUE and set to FALSE if no errors are found to avoid
   # repetitively reassigning value to TRUE if multiple errors found
-  error_check <- c(TRUE)
+  errorCheck <- c(TRUE)
   
   # Create a list to store messages about errors
   # These error messages will be concatenated into one string after all errors
   # are checked for and added to the error_check object
-  error_check_msg <- list()
+  errorCheckMessage <- list()
   
   # Check for correct data type of x
   if(!is.numeric(x)){
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- x must be a numeric value or numeric vector")
   }
   
   # Check for correct data type of alpha
   if(length(alpha) > 1 | !is.numeric(alpha)) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- alpha must be a single numeric value")
   }
   
   # Check that alpha is positive
   else if(alpha <= 0) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- alpha can only take positive values")
   }
   
   # Check for correct data type of beta
   if(length(beta) > 1 | !is.numeric(beta)) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- beta must be a single numeric value")
   }
   
   # Check that both beta values are positive
   else if(beta <= 0) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- beta can only take positive values")
   }
   
   # Check for correct data type of p
   if(length(p) > 1 | !is.numeric(p)) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- p must be a single numeric value")
   }
   
   # Check for correct data type of q
   if(length(q) > 1 | !is.numeric(q)) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- q must be a single numeric value")
   }
   
   # Check for correct data type of k
   if(length(k) > 1 | !is.numeric(k)) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- k must be a single numeric value")
   }
   
   # If any error messages have been logged, concatenate these to a single string
   # and append to the return error_check list
-  if(length(error_check_msg) > 0) {
-    error_check_msg <- paste(c("Input is invalid because: ", error_check_msg),
+  if(length(errorCheckMessage) > 0) {
+    errorCheckMessage <- paste(c("Input is invalid because: ", errorCheckMessage),
                              collapse = " \n ")
-    error_check <- append(error_check, error_check_msg)
+    errorCheck <- append(errorCheck, errorCheckMessage)
   }
   # Else set the error_check boolean to FALSE as no errors were logged
   else {
-    error_check[1] <- FALSE
+    errorCheck[1] <- FALSE
   }
   
-  return(error_check)
+  return(errorCheck)
 }
 
 #######
 ## b ##
 #######
 
+# Calculate the approximate area between a curve and the x-axis in an interval
+# using the midpoint Riemann sum with specified intervals. Implemented with a 
+# loop
 calcMidRiemannLoop <- function(xVec, alpha, beta, p, q, k){
   # xVec    (numeric vector) : input vector
   # alpha   (numeric)        : alpha parameter
@@ -705,7 +726,7 @@ calcMidRiemannLoop <- function(xVec, alpha, beta, p, q, k){
   # Perform the sum
   for(i in 2:length(xVec)){
     # Find the midpoint of the subinterval
-    midPoint      <- (xVec[i] + xVec[i-1]) / 2
+    midPoint <- (xVec[i] + xVec[i-1]) / 2
 
     # Add the width of the subinterval times the absolute value of the function
     # at the midpoint of the interval to the Riemann sum
@@ -723,6 +744,9 @@ calcMidRiemannLoop <- function(xVec, alpha, beta, p, q, k){
 ## c ##
 #######
 
+# Calculate the approximate area between a curve and the x-axis in an interval
+# using the midpoint Riemann sum with specified intervals. Implemented without a
+# loop
 calcMidRiemann <- function(xVec, alpha, beta, p, q, k){
   # xVec    (numeric vector) : input vector
   # alpha   (numeric)        : alpha parameter
@@ -735,18 +759,18 @@ calcMidRiemann <- function(xVec, alpha, beta, p, q, k){
   #                            midpoint Riemann sum
   
   # Get the information about validity of the inputs
-  error_check <- verifyRiemannInput(xVec, alpha, beta, p, q, k)
+  errorCheck <- verifyRiemannInput(xVec, alpha, beta, p, q, k)
   
   # If inputs are invalid, terminate the function and display the reasons
-  if(error_check[1]){
-    stop(error_check[2])
+  if(errorCheck[1]){
+    stop(errorCheck[2])
   }
   
   # Get the number of elements in xVec
   N <- length(xVec)
   
   # Create two vectors of left-points and right-points for the subintervals
-  leftPoints <- xVec[-N]
+  leftPoints  <- xVec[-N]
   rightPoints <- xVec[-1]
   
   # Use the left and right points to calculate a vector of midpoints
@@ -774,6 +798,7 @@ calcMidRiemann <- function(xVec, alpha, beta, p, q, k){
 ## d ##
 #######
 
+# Check the validity of inputs to the midpoint Riemann function
 verifyRiemannInput <- function(xVec, alpha, beta, p, q, k){
   # xVec    (numeric vector) : input vector
   # alpha   (numeric)        : alpha parameter
@@ -789,81 +814,82 @@ verifyRiemannInput <- function(xVec, alpha, beta, p, q, k){
   
   # Default to TRUE and set to FALSE if no errors are found to avoid
   # repetitively reassigning value to TRUE if multiple errors found
-  error_check <- c(TRUE)
+  errorCheck <- c(TRUE)
   
   # Create a list to store messages about errors
   # These error messages will be concatenated into one string after all errors
   # are checked for and added to the error_check object
-  error_check_msg <- list()
+  errorCheckMessage <- list()
   
   # Check for correct data type of x
   if(length(xVec) < 2 | !is.numeric(xVec)){
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- xVec must be a numeric vector with length of 
                               at least 2")
   }
   
   if(!monotoneInceasing(xVec)) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- elements of xVec must be in strictly increasing
                               order")
   }
   
   # Check for correct data type of alpha
   if(length(alpha) > 1 | !is.numeric(alpha)) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- alpha must be a single numeric value")
   }
   
   # Check that alpha is positive
   else if(alpha <= 0) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- alpha can only take positive values")
   }
   
   # Check for correct data type of beta
   if(length(beta) > 1 | !is.numeric(beta)) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- beta must be a single numeric value")
   }
   
   # Check that both beta values are positive
   else if(beta <= 0) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- beta can only take positive values")
   }
   
   # Check for correct data type of p
   if(length(p) > 1 | !is.numeric(p)) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- p must be a single numeric value")
   }
   
   # Check for correct data type of q
   if(length(q) > 1 | !is.numeric(q)) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- q must be a single numeric value")
   }
   
   # Check for correct data type of k
   if(length(k) > 1 | !is.numeric(k)) {
-    error_check_msg <- append(error_check_msg, 
+    errorCheckMessage <- append(errorCheckMessage, 
                               "- k must be a single numeric value")
   }
   
   # If any error messages have been logged, concatenate these to a single string
   # and append to the return error_check list
-  if(length(error_check_msg) > 0) {
-    error_check_msg <- paste(c("Input is invalid because: ", error_check_msg),
+  if(length(errorCheckMessage) > 0) {
+    errorCheckMessage <- paste(c("Input is invalid because: ", errorCheckMessage),
                              collapse = " \n ")
-    error_check <- append(error_check, error_check_msg)
-  }
-  # Else set the error_check boolean to FALSE as no errors were logged
-  else {
-    error_check[1] <- FALSE
+    errorCheck <- append(errorCheck, errorCheckMessage)
   }
   
-  return(error_check)
+  # Else set the error_check boolean to FALSE as no errors were logged
+  else {
+    errorCheck[1] <- FALSE
+  }
+  
+  return(errorCheck)
 }
 
 # Check if elements of a numeric vector are monotone increasing (not monotone 
@@ -910,12 +936,25 @@ calcMidRiemann(xVec_1, alpha_1, beta_1, p_1, q_1, k_1)
 ## f ##
 #######
 
+# Calculate the total approximate area between a curve and the x-axis for
+# multiple intervals on the x-axis using the midpoint Riemann sum
 calcMidRiemannAreas <- function(xSeqList, alpha, beta, p, q, k){
+  # xSeqList (list)    : list of input vectors
+  # alpha    (numeric) : alpha parameter
+  # beta     (numeric) : beta parameter
+  # p        (numeric) : p parameter
+  # q        (numeric) : q parameter
+  # k        (numeric) : k parameter
+  # returns  (numeric) : an approximation to the area between a function 
+  #                      given by smoothCurve() and the x-axis using the 
+  #                      midpoint Riemann sum
   
-  totalArea <- 0
-  for(xVec in xSeqList){
-    totalArea <- totalArea + calcMidRiemann(xVec, alpha, beta, p, q, k)
-  }
+  # Calculate the approximate area for eachinterval
+  intervalAreas <- sapply(xSeqList, calcMidRiemann, alpha = alpha, beta = beta, 
+                          p = p, q = q, k = k)
+  
+  # Sum the areas to get the total area
+  totalArea <- sum(intervalAreas)
     
   return(totalArea)
 }
@@ -946,6 +985,10 @@ calcMidRiemannAreas(xSeqList_2, alpha_2, beta_2, p_2, q_2, k_2)
 ### Question 4 ###
 ##################
 ##################
+
+#######
+## a ##
+#######
 
 # Calculates the natural logarithm of the probability of an observed sequence
 # of weather states
@@ -1100,6 +1143,8 @@ colourSeqProb <- function(colourSeq, emitProbs, weatherSeq){
   return(logColourSeqProb)
 }
 
+# Encodes the jacket sequence as numeric values which can be used to index the
+# probability data structures
 colourSeqEncoder <- function(colourSeq){
   # colourSeq  (character vector) : vector representing the sequence of jacket
   #                                 states with "B" = black and "W" = white
@@ -1141,3 +1186,4 @@ weatherColourProbs(colourSeq_1, emitProbs_1, weatherSeq_1, trProbs_1,
                    initProbs_1)
 
 # The natural log of the joint probability of the observed sequences is -15.121
+
